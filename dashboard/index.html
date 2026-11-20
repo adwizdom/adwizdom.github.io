@@ -98,6 +98,7 @@ video{width:100%;max-width:900px;border-radius:10px;border:1px solid var(--line)
     <a class="tab" data-tab="videos" href="#videos">🎬 Videos</a>
     <a class="tab" data-tab="new" href="#new">➕ New video</a>
     <a class="tab" data-tab="topics" href="#topics">🗂️ Topic queue</a>
+    <a class="tab" data-tab="health" href="#health">🚨 Health &amp; recovery</a>
     <a class="tab" data-tab="runs" href="#runs">⚙️ Runs &amp; logs</a>
     <a class="tab" data-tab="costs" href="#costs">💰 Costs</a>
     <a class="tab" data-tab="settings" href="#settings">🛠️ Settings</a>
@@ -114,7 +115,8 @@ video{width:100%;max-width:900px;border-radius:10px;border:1px solid var(--line)
 "use strict";
 const OWNER = "adwizdom", REPO = "unpacked-empires", BRANCH = "main";
 const API = "https://api.github.com";
-const WF = {script: "script.yml", video: "video.yml", voice: "voice.yml"};
+const WF = {script: "script.yml", video: "video.yml", voice: "voice.yml", auto: "auto-continue.yml"};
+const STUCK_MINUTES = 180;
 const REQUIRED_SECRETS = [
   ["OPENAI_API_KEY", "Script writing + fact-check (gpt-6.2-sol)", "https://platform.openai.com/api-keys"],
   ["GEMINI_API_KEY", "Free backup text model", "https://aistudio.google.com/apikey"],
@@ -329,12 +331,13 @@ views.overview = async () => {
     <div class="card kpi" id="ov-cost"><div class="l">AI cost this month</div><div class="v"><span class="spin"></span></div><div class="s">loading…</div></div>
     <div class="card kpi" id="ov-model"><div class="l">Text model</div><div class="v" style="font-size:18px"><span class="spin"></span></div><div class="s"></div></div>
   </div>
+  <div id="ov-health" style="margin-top:14px"></div>
   <h2>Latest video</h2><div class="card" id="ov-last"><p class="muted"><span class="spin"></span> loading stages and image progress…</p></div>
   <h2>Weekly rhythm</h2>
   <div class="grid g4">
     <div class="card"><b>Day 1</b><p class="muted">Start the script (≈15 min), then “Make video”: voice + first ≈55 images.</p></div>
-    <div class="card"><b>Day 2</b><p class="muted">Press “Continue images” — the free Cloudflare credit refills daily.</p></div>
-    <div class="card"><b>Day 3</b><p class="muted">Last images → video assembles automatically (≈10 min).</p></div>
+    <div class="card"><b>Day 2</b><p class="muted">Automatic at 00:20 UTC: images continue where they stopped (free credit refills daily).</p></div>
+    <div class="card"><b>Day 3</b><p class="muted">Automatic: last images → video assembles (≈10 min). Errors show up under Health &amp; recovery.</p></div>
     <div class="card"><b>Review</b><p class="muted">Watch the video, check thumbnails, description and fact-check, then publish.</p></div>
   </div>`;
 };
@@ -361,6 +364,19 @@ async function fillOverview() {
         ${last.script.conclusion === "success" && !(last.videos[0] && last.videos[0].status !== "completed")
           ? `<button class="primary" onclick="makeVideo(${last.script.id})">${prog && !prog.complete ? "Continue images (next day)" : last.videos.length ? "Remake video" : "Make video"}</button>` : ""}</div>`);
     } catch (e) { set("#ov-last", `<p class="muted">❌ ${esc(e.message)}</p>`); }
+  })();
+  // health banner: open problems, stuck runs, paused automation
+  (async () => {
+    try {
+      const h = await healthData(); const autoOn = h.auto?.state === "active";
+      if (!h.open.length && !h.stuck.length && autoOn)
+        return set("#ov-health", `<div class="card row"><span class="pill ok">✓ healthy</span><span class="muted">No open errors · daily auto-continue on (next ${fmtDate(nextAutoRun().toISOString())})</span><a class="right" href="#health">Health &amp; recovery →</a></div>`);
+      const parts = [];
+      if (h.open.length) parts.push(`<b>${h.open.length}</b> failed run(s) need attention`);
+      if (h.stuck.length) parts.push(`<b>${h.stuck.length}</b> run(s) look stuck`);
+      if (!autoOn) parts.push("daily auto-continue is <b>paused</b>");
+      set("#ov-health", `<div class="card row" style="border-color:#5a2a24;background:#22110e"><span class="pill bad">⚠ attention</span><span>${parts.join(" · ")}</span><button class="primary right" onclick="go('health')">Fix it</button></div>`);
+    } catch (e) { set("#ov-health", ""); }
   })();
   // month cost from tiny meta artifacts only (never the 3 MB packages here)
   (async () => {
@@ -474,6 +490,79 @@ window.qAdd = () => { const v = $("#newTopic").value.trim(); if (!v) return; win
 window.qDel = i => { window._topics.data.queue.splice(i, 1); qRender(); };
 window.qMove = (i, d) => { const q = window._topics.data.queue, j = i + d; if (j < 0 || j >= q.length) return; [q[i], q[j]] = [q[j], q[i]]; qRender(); };
 window.qSave = async () => { try { const r = await putFile("topics.json", JSON.stringify(window._topics.data, null, 2) + "\n", window._topics.sha, "Update topic queue (dashboard)"); window._topics.sha = r.content.sha; toast("✅ Topic queue saved."); } catch (e) { toast("❌ " + esc(e.message)); } };
+
+/* ---------------- health & recovery ---------------- */
+const isFail = r => r.status === "completed" && ["failure", "timed_out", "startup_failure"].includes(r.conclusion);
+async function healthData() {
+  const runs = await allRuns();
+  const weekAgo = Date.now() - 7 * 864e5;
+  // a failure counts as "open" until a later run of the same thing (same title) succeeds
+  const open = runs.filter(r => isFail(r) && new Date(r.created_at) > weekAgo && !runs.some(o =>
+    o.display_title === r.display_title && o.conclusion === "success" && new Date(o.created_at) > new Date(r.created_at)));
+  const stuck = runs.filter(r => r.status !== "completed" && (Date.now() - new Date(r.run_started_at || r.created_at)) / 6e4 > STUCK_MINUTES);
+  let auto = null, autoRuns = [];
+  try { auto = await gh(repo(`/actions/workflows/${WF.auto}`)); } catch (e) {}
+  autoRuns = runs.filter(r => r.path.endsWith(WF.auto));
+  return {runs, open, stuck, auto, autoRuns};
+}
+async function failedStep(runId) {
+  try { const jobs = await jobsOf(runId);
+    for (const j of jobs) { const s = (j.steps || []).find(x => x.conclusion === "failure"); if (s) return s.name; }
+    return jobs[0]?.conclusion === "cancelled" ? "cancelled" : "(no step detail)";
+  } catch (e) { return "(could not read)"; }
+}
+function recoveryButtons(r) {
+  const b = [`<button onclick="rerunFailed(${r.id})">↻ Re-run failed part</button>`];
+  if (r.path.endsWith(WF.script)) b.push(`<button class="primary" onclick="startScript(${JSON.stringify(topicOf(r)).replace(/"/g, "&quot;")})">Start script again</button>`);
+  if (r.path.endsWith(WF.video)) { const s = scriptIdOfVideo(r); if (s) b.push(`<button class="primary" onclick="makeVideo(${s})">Continue / retry video</button>`); }
+  if (r.path.endsWith(WF.auto)) b.push(`<button class="primary" onclick="runAuto(false)">Run auto-continue now</button>`);
+  b.push(`<a href="${r.html_url}" target="_blank" rel="noopener"><button>Open logs ↗</button></a>`);
+  return b.join("");
+}
+window.runAuto = async (dry) => {
+  try { await dispatch(WF.auto, {dry_run: dry ? "true" : "false"}); toast(dry ? "Check started — see Runs & logs for the result." : "✅ Auto-continue started now."); }
+  catch (e) { toast("❌ " + esc(e.message)); }
+};
+window.setAuto = async (on) => {
+  try { await gh(repo(`/actions/workflows/${WF.auto}/${on ? "enable" : "disable"}`), {method: "PUT"}); toast(on ? "✅ Daily automation resumed." : "⏸ Daily automation paused."); setTimeout(() => go("health"), 1500); }
+  catch (e) { toast("❌ " + esc(e.message)); }
+};
+function nextAutoRun() {
+  const n = new Date(); const t = new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate(), 0, 20));
+  if (t <= n) t.setUTCDate(t.getUTCDate() + 1);
+  return t;
+}
+
+views.health = async () => {
+  const h = await healthData();
+  const autoOn = h.auto?.state === "active";
+  const lastAuto = h.autoRuns[0];
+  const failRows = await Promise.all(h.open.map(async r => `<tr><td><b>${esc(r.name)}</b><div class="muted" style="font-size:12px">${esc(r.display_title)}</div></td>
+    <td>${statusPill(r)}<div class="muted" style="font-size:12px">failed at: ${esc(await failedStep(r.id))}</div></td><td>${fmtDate(r.created_at)}<div class="muted" style="font-size:12px">${ago(r.created_at)}</div></td>
+    <td class="row">${recoveryButtons(r)}</td></tr>`));
+  return `<h1>Health &amp; recovery</h1><p class="sub">If something stops because of an error, it shows up here with one-click fixes.</p>
+  <div class="grid g3">
+    <div class="card kpi"><div class="l">Open problems</div><div class="v" style="color:${h.open.length ? "var(--bad)" : "var(--ok)"}">${h.open.length}</div><div class="s">failed runs in the last 7 days not fixed by a later success</div></div>
+    <div class="card kpi"><div class="l">Stuck runs</div><div class="v" style="color:${h.stuck.length ? "var(--warn)" : "var(--ok)"}">${h.stuck.length}</div><div class="s">running longer than ${STUCK_MINUTES / 60} h</div></div>
+    <div class="card kpi"><div class="l">Daily automation</div><div class="v" style="font-size:20px">${autoOn ? "✅ on" : "⏸ paused"}</div><div class="s">next check ${fmtDate(nextAutoRun().toISOString())} (00:20 UTC)${lastAuto ? ` · last ${statusPill(lastAuto)}` : ""}</div></div>
+  </div>
+  <h2>Controls</h2><div class="card row">
+    <button class="primary" onclick="runAuto(false)">▶ Continue unfinished video now</button>
+    <button onclick="runAuto(true)">Check only (dry run)</button>
+    ${autoOn ? `<button class="danger" onclick="setAuto(false)">⏸ Pause daily automation</button>` : `<button class="primary" onclick="setAuto(true)">▶ Resume daily automation</button>`}
+    <span class="muted">“Continue now” uses today’s free image credit; pausing stops the 00:20 UTC run until resumed.</span></div>
+  <h2>Problems to fix</h2>
+  ${h.open.length ? `<div class="card" style="overflow:auto"><table><tr><th>What failed</th><th>Where</th><th>When</th><th>Fix</th></tr>${failRows.join("")}</table></div>`
+                  : '<div class="card"><span class="pill ok">✓ no open problems</span> <span class="muted">Everything that failed recently has since succeeded.</span></div>'}
+  ${h.stuck.length ? `<h2>Stuck runs</h2><div class="card" style="overflow:auto"><table><tr><th>Run</th><th>Running for</th><th></th></tr>${h.stuck.map(r => `<tr><td>${esc(r.display_title)}</td><td>${dur(r.run_started_at)}</td><td class="row"><button class="danger" onclick="cancelRun(${r.id})">Cancel</button><a href="${r.html_url}" target="_blank" rel="noopener"><button>Logs ↗</button></a></td></tr>`).join("")}</table></div>` : ""}
+  <h2>What usually goes wrong &amp; the fix</h2>
+  <div class="grid g2">
+    <div class="card"><b>Script: “quota / 429”</b><p class="muted">The text model's limit was hit. OpenAI: check credit/limits; Gemini (backup): wait until the daily reset. Then “Start script again”.</p></div>
+    <div class="card"><b>Images: free credit used up</b><p class="muted">Not an error — the video continues automatically at 00:20 UTC, or press “Continue unfinished video now” after the reset.</p></div>
+    <div class="card"><b>Run failed at “Install”</b><p class="muted">A temporary download problem on GitHub's side. “Re-run failed part” almost always fixes it.</p></div>
+    <div class="card"><b>401 / 403 errors</b><p class="muted">A key expired or was removed. Check “Setup &amp; keys”, renew the key, then re-run.</p></div>
+  </div>`;
+};
 
 views.runs = async () => {
   const runs = await allRuns();
