@@ -1,0 +1,566 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Unpacked Empires Studio</title>
+<link rel="icon" href="../logo.png">
+<style>
+:root{
+  --bg:#0c0a08;--panel:#15120e;--panel2:#1c1813;--line:#2e271d;--fg:#efe6d2;--muted:#a99a7c;--gold:#d9b46a;--gold2:#f5c542;
+  --ok:#4caf7a;--warn:#e0a03a;--bad:#e05a4c;--info:#6aa6d9;--radius:12px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+a{color:var(--gold)}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--panel2);color:var(--fg);border-radius:8px;padding:7px 12px}
+button:hover{border-color:var(--gold)}
+button.primary{background:var(--gold2);color:#111;border-color:var(--gold2);font-weight:600}
+button.danger{border-color:#5a2a24;color:#ffb3aa}
+button:disabled{opacity:.5;cursor:default}
+input,select,textarea{font:inherit;background:#100d0a;color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%}
+textarea{min-height:90px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+label{display:block;color:var(--muted);font-size:13px;margin:12px 0 4px}
+.app{display:grid;grid-template-columns:230px 1fr;min-height:100vh}
+nav{background:#0f0c09;border-right:1px solid var(--line);padding:18px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+.brand{display:flex;gap:10px;align-items:center;margin:0 6px 18px}
+.brand img{width:38px;height:38px;border-radius:50%;box-shadow:0 0 0 2px var(--gold)}
+.brand b{font-size:15px;letter-spacing:.06em;color:var(--gold)} .brand small{display:block;color:var(--muted);font-size:11px}
+nav a.tab{display:flex;gap:10px;align-items:center;padding:9px 10px;border-radius:8px;color:var(--fg);text-decoration:none;margin:2px 0}
+nav a.tab:hover{background:var(--panel)} nav a.tab.on{background:var(--panel2);box-shadow:inset 3px 0 0 var(--gold)}
+nav .sep{height:1px;background:var(--line);margin:12px 6px}
+nav .foot{color:var(--muted);font-size:12px;padding:6px 10px}
+main{padding:24px 28px 80px;max-width:1240px;width:100%}
+h1{font-size:22px;margin:0 0 4px} h2{font-size:17px;margin:26px 0 10px} h3{font-size:15px;margin:16px 0 8px}
+.sub{color:var(--muted);margin:0 0 18px}
+.grid{display:grid;gap:14px} .g4{grid-template-columns:repeat(4,minmax(0,1fr))} .g3{grid-template-columns:repeat(3,minmax(0,1fr))} .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.kpi .v{font-size:26px;font-weight:700} .kpi .l{color:var(--muted);font-size:13px} .kpi .s{color:var(--muted);font-size:12px;margin-top:4px}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:2px 9px;border-radius:99px;border:1px solid var(--line);white-space:nowrap}
+.pill.ok{color:#9fe0b9;border-color:#245c3c;background:#10251a} .pill.bad{color:#ffb3aa;border-color:#5a2a24;background:#2a120f}
+.pill.run{color:#ffe1a3;border-color:#5c4718;background:#2a2010} .pill.wait{color:var(--muted)} .pill.info{color:#bcd8f2;border-color:#24425c;background:#0f1d2a}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
+.run .dot{animation:pulse 1.2s infinite} @keyframes pulse{50%{opacity:.25}}
+table{width:100%;border-collapse:collapse} th,td{text-align:left;padding:9px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+th{color:var(--muted);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.05em}
+td .muted,.muted{color:var(--muted)}
+.stages{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.stage{font-size:12px;padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:#120f0b}
+.stage.ok{border-color:#245c3c;color:#9fe0b9} .stage.bad{border-color:#5a2a24;color:#ffb3aa} .stage.run{border-color:#5c4718;color:#ffe1a3} .stage.skip{opacity:.45}
+.bar{height:8px;background:#221c14;border-radius:99px;overflow:hidden} .bar i{display:block;height:100%;background:linear-gradient(90deg,#b8862b,var(--gold2))}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.right{margin-left:auto}
+.video-card{border:1px solid var(--line);border-radius:var(--radius);background:var(--panel);margin:12px 0;overflow:hidden}
+.video-card header{display:flex;gap:12px;align-items:center;padding:14px 16px;cursor:pointer}
+.video-card header:hover{background:var(--panel2)}
+.video-card .body{padding:0 16px 16px;border-top:1px solid var(--line)}
+.thumbs{display:flex;gap:10px;flex-wrap:wrap} .thumbs img{width:320px;max-width:100%;border-radius:8px;border:1px solid var(--line)}
+pre.box,.md{background:#100d0a;border:1px solid var(--line);border-radius:8px;padding:12px;max-height:420px;overflow:auto;white-space:pre-wrap;font-size:13px}
+.md h1,.md h2{font-size:15px;color:var(--gold);margin:12px 0 6px} .md li{margin:4px 0}
+video{width:100%;max-width:900px;border-radius:10px;border:1px solid var(--line);background:#000}
+.toast{position:fixed;right:18px;bottom:18px;max-width:420px;background:#201a12;border:1px solid var(--gold);color:var(--fg);padding:12px 14px;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.5);display:none;z-index:9}
+.login{max-width:640px;margin:60px auto} .login ol li{margin:6px 0}
+.hide{display:none!important}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.qitem{display:flex;gap:8px;align-items:center;padding:8px 10px;border:1px solid var(--line);border-radius:8px;margin:6px 0;background:#120f0b}
+.qitem .t{flex:1}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--muted);border-top-color:var(--gold);border-radius:50%;animation:sp 1s linear infinite;vertical-align:-2px}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (max-width:900px){.app{grid-template-columns:1fr} nav{position:static;height:auto} .g4,.g3{grid-template-columns:repeat(2,minmax(0,1fr))} main{padding:18px 16px 70px}}
+@media (max-width:560px){.g4,.g3,.g2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="login" class="login hide">
+  <div class="brand"><img src="../logo.png" alt=""><div><b>UNPACKED EMPIRES</b><small>Automation Studio</small></div></div>
+  <div class="card">
+    <h1>Connect to your pipeline</h1>
+    <p class="muted">This page has no data of its own. It talks directly to GitHub with a personal access token that is stored only in this browser.</p>
+    <ol class="muted">
+      <li>Open <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">GitHub → Fine-grained tokens → Generate new token</a>.</li>
+      <li>Name it <b>Unpacked Empires dashboard</b>, expiration up to 1 year.</li>
+      <li>Repository access: <b>Only select repositories → adwizdom/unpacked-empires</b>.</li>
+      <li>Permissions → Repository: <b>Actions: Read and write</b>, <b>Contents: Read and write</b>, <b>Secrets: Read-only</b> (Metadata is added automatically).</li>
+      <li>Generate, copy, paste below.</li>
+    </ol>
+    <label>Personal access token</label>
+    <input id="tokenInput" type="password" placeholder="github_pat_…" autocomplete="off">
+    <label><input id="remember" type="checkbox" checked style="width:auto"> Remember on this device</label>
+    <div class="row" style="margin-top:12px"><button class="primary" onclick="connect()">Connect</button><span id="loginMsg" class="muted"></span></div>
+  </div>
+</div>
+
+<div id="app" class="app hide">
+  <nav>
+    <div class="brand"><img src="../logo.png" alt=""><div><b>UNPACKED EMPIRES</b><small>Automation Studio</small></div></div>
+    <a class="tab" data-tab="overview" href="#overview">🏠 Overview</a>
+    <a class="tab" data-tab="videos" href="#videos">🎬 Videos</a>
+    <a class="tab" data-tab="new" href="#new">➕ New video</a>
+    <a class="tab" data-tab="topics" href="#topics">🗂️ Topic queue</a>
+    <a class="tab" data-tab="runs" href="#runs">⚙️ Runs &amp; logs</a>
+    <a class="tab" data-tab="costs" href="#costs">💰 Costs</a>
+    <a class="tab" data-tab="settings" href="#settings">🛠️ Settings</a>
+    <a class="tab" data-tab="setup" href="#setup">🔑 Setup &amp; keys</a>
+    <a class="tab" data-tab="rules" href="#rules">📜 Channel rules</a>
+    <div class="sep"></div>
+    <div class="foot">Repo: <a id="repoLink" target="_blank" rel="noopener"></a><br><span id="rate"></span><br><a href="#" onclick="disconnect();return false">Disconnect</a></div>
+  </nav>
+  <main id="main"></main>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+"use strict";
+const OWNER = "adwizdom", REPO = "unpacked-empires", BRANCH = "main";
+const API = "https://api.github.com";
+const WF = {script: "script.yml", video: "video.yml", voice: "voice.yml"};
+const REQUIRED_SECRETS = [
+  ["OPENAI_API_KEY", "Script writing + fact-check (gpt-6.2-sol)", "https://platform.openai.com/api-keys"],
+  ["GEMINI_API_KEY", "Free backup text model", "https://aistudio.google.com/apikey"],
+  ["CLOUDFLARE_ACCOUNT_ID", "Images (Cloudflare Workers AI)", "https://dash.cloudflare.com/"],
+  ["CLOUDFLARE_API_TOKEN", "Images (Cloudflare Workers AI)", "https://dash.cloudflare.com/profile/api-tokens"],
+  ["YOUTUBE_CLIENT_ID", "Upload step (not built yet)", "https://console.cloud.google.com/apis/credentials"],
+  ["YOUTUBE_CLIENT_SECRET", "Upload step (not built yet)", "https://console.cloud.google.com/apis/credentials"],
+  ["YOUTUBE_REFRESH_TOKEN", "Upload step (not built yet)", ""],
+];
+let TOKEN = null;
+const cache = {zips: new Map(), artifacts: new Map(), jobs: new Map()};
+
+/* ---------------- storage (never required to work) ---------------- */
+function store(k, v, persist) { try { (persist ? localStorage : sessionStorage).setItem(k, v); } catch (e) {} }
+function load(k) { try { return localStorage.getItem(k) || sessionStorage.getItem(k); } catch (e) { return null; } }
+function forget(k) { try { localStorage.removeItem(k); sessionStorage.removeItem(k); } catch (e) {} }
+
+/* ---------------- helpers ---------------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function toast(msg, ms = 4500) { const t = $("#toast"); t.innerHTML = msg; t.style.display = "block"; clearTimeout(t._h); t._h = setTimeout(() => t.style.display = "none", ms); }
+function ago(iso) { if (!iso) return ""; const s = (Date.now() - new Date(iso)) / 1000;
+  if (s < 60) return "just now"; if (s < 3600) return Math.round(s / 60) + " min ago"; if (s < 86400) return Math.round(s / 3600) + " h ago"; return Math.round(s / 86400) + " d ago"; }
+function dur(a, b) { if (!a) return ""; const s = Math.max(0, (new Date(b || Date.now()) - new Date(a)) / 1000); return s < 3600 ? Math.round(s / 60) + " min" : (s / 3600).toFixed(1) + " h"; }
+function fmtDate(iso) { return iso ? new Date(iso).toLocaleString([], {month: "short", day: "numeric", hour: "2-digit", minute: "2-digit"}) : ""; }
+function money(x) { return "$" + (x || 0).toFixed(2); }
+function statusPill(run) {
+  if (!run) return '<span class="pill wait">not started</span>';
+  if (run.status !== "completed") return `<span class="pill run"><span class="dot"></span>${esc(run.status.replace("_", " "))}</span>`;
+  if (run.conclusion === "success") return '<span class="pill ok"><span class="dot"></span>success</span>';
+  if (run.conclusion === "cancelled") return '<span class="pill wait">cancelled</span>';
+  return `<span class="pill bad"><span class="dot"></span>${esc(run.conclusion || "failed")}</span>`;
+}
+
+async function gh(path, opts = {}) {
+  const r = await fetch(path.startsWith("http") ? path : API + path, {
+    ...opts, headers: {"Authorization": "Bearer " + TOKEN, "Accept": "application/vnd.github+json",
+                       "X-GitHub-Api-Version": "2022-11-28", ...(opts.headers || {})}});
+  const left = r.headers.get("x-ratelimit-remaining");
+  if (left) $("#rate").textContent = `API calls left this hour: ${left}`;
+  if (!r.ok) { let m = ""; try { m = (await r.json()).message; } catch (e) {} throw new Error(`${r.status} ${m || r.statusText}`); }
+  if (r.status === 204) return null;
+  const ct = r.headers.get("content-type") || "";
+  return ct.includes("json") ? r.json() : r;
+}
+const repo = p => `/repos/${OWNER}/${REPO}${p}`;
+
+/* ---------------- tiny ZIP reader (artifacts are zip files) ---------------- */
+async function readZip(buf) {
+  const dv = new DataView(buf), u8 = new Uint8Array(buf);
+  let e = buf.byteLength - 22;
+  while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
+  if (e < 0) throw new Error("not a zip file");
+  const n = dv.getUint16(e + 10, true); let p = dv.getUint32(e + 16, true);
+  const files = {};
+  for (let i = 0; i < n; i++) {
+    const method = dv.getUint16(p + 10, true), csize = dv.getUint32(p + 20, true), size = dv.getUint32(p + 24, true);
+    const nl = dv.getUint16(p + 28, true), xl = dv.getUint16(p + 30, true), cl = dv.getUint16(p + 32, true);
+    const off = dv.getUint32(p + 42, true);
+    const name = new TextDecoder().decode(u8.subarray(p + 46, p + 46 + nl));
+    files[name] = {method, csize, size, off};
+    p += 46 + nl + xl + cl;
+  }
+  async function get(name) {
+    const f = files[name]; if (!f) return null;
+    const lnl = dv.getUint16(f.off + 26, true), lxl = dv.getUint16(f.off + 28, true);
+    const data = u8.subarray(f.off + 30 + lnl + lxl, f.off + 30 + lnl + lxl + f.csize);
+    if (f.method === 0) return data;
+    const ds = new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+    return new Uint8Array(await new Response(ds).arrayBuffer());
+  }
+  return {files, get, text: async n => { const b = await get(n); return b ? new TextDecoder().decode(b) : null; },
+          json: async n => { const t = await (async () => { const b = await get(n); return b ? new TextDecoder().decode(b) : null; })(); return t ? JSON.parse(t) : null; },
+          url: async (n, type) => { const b = await get(n); return b ? URL.createObjectURL(new Blob([b], {type})) : null; }};
+}
+async function artifactsOf(runId) {
+  if (!cache.artifacts.has(runId)) cache.artifacts.set(runId, (await gh(repo(`/actions/runs/${runId}/artifacts?per_page=50`))).artifacts);
+  return cache.artifacts.get(runId);
+}
+async function zipOf(art, onProgress) {
+  if (cache.zips.has(art.id)) return cache.zips.get(art.id);
+  const r = await fetch(API + repo(`/actions/artifacts/${art.id}/zip`), {headers: {"Authorization": "Bearer " + TOKEN}});
+  if (!r.ok) throw new Error("download failed: " + r.status);
+  let buf;
+  if (onProgress && r.body) {
+    const reader = r.body.getReader(), chunks = []; let got = 0;
+    for (;;) { const {done, value} = await reader.read(); if (done) break; chunks.push(value); got += value.length; onProgress(got, art.size_in_bytes); }
+    buf = await new Blob(chunks).arrayBuffer();
+  } else buf = await r.arrayBuffer();
+  const z = await readZip(buf);
+  cache.zips.set(art.id, z);
+  return z;
+}
+const findFile = (z, suffix) => Object.keys(z.files).find(n => n.endsWith(suffix));
+
+/* ---------------- data model ---------------- */
+async function allRuns() {
+  const r = await gh(repo(`/actions/runs?per_page=100`));
+  return r.workflow_runs;
+}
+function topicOf(run) { const t = run.display_title || ""; return t.startsWith("Script: ") ? t.slice(8) : t; }
+function scriptIdOfVideo(run) { const m = (run.display_title || "").match(/script run (\d+)/); return m ? m[1] : null; }
+async function groupVideos() {
+  const runs = await allRuns();
+  const scripts = runs.filter(r => r.path.endsWith(WF.script));
+  const videos = runs.filter(r => r.path.endsWith(WF.video));
+  return scripts.map(s => ({script: s, videos: videos.filter(v => scriptIdOfVideo(v) === String(s.id))}));
+}
+async function jobsOf(runId) {
+  if (!cache.jobs.has(runId)) cache.jobs.set(runId, (await gh(repo(`/actions/runs/${runId}/jobs`))).jobs);
+  return cache.jobs.get(runId);
+}
+const STAGES = [
+  ["Research", "Research", "script"], ["Script + fact-check", "Outline, script, fact-check", "script"],
+  ["Thumbnails", "Thumbnails", "script"], ["Disclaimer", "Disclaimer", "script"],
+  ["Voiceover", "Voiceover", "video"], ["Images", "Scene images", "video"], ["Assembly", "Assemble video", "video"],
+  ["Upload", null, "upload"],
+];
+async function stagesHtml(item) {
+  const sJobs = await jobsOf(item.script.id);
+  const lastVideo = item.videos[0];
+  const vJobs = lastVideo ? await jobsOf(lastVideo.id) : [];
+  const steps = {script: sJobs.flatMap(j => j.steps || []), video: vJobs.flatMap(j => j.steps || [])};
+  return '<div class="stages">' + STAGES.map(([label, prefix, kind]) => {
+    if (!prefix) return `<span class="stage skip" title="YouTube upload step is not built yet">${label} · soon</span>`;
+    const st = (steps[kind] || []).find(x => x.name.startsWith(prefix));
+    let cls = "skip", mark = "○";
+    if (st) {
+      if (st.status !== "completed") { cls = "run"; mark = "◐"; }
+      else if (st.conclusion === "success") { cls = "ok"; mark = "✓"; }
+      else if (st.conclusion === "skipped") { cls = "skip"; mark = "–"; }
+      else { cls = "bad"; mark = "✕"; }
+    }
+    return `<span class="stage ${cls}">${mark} ${label}</span>`;
+  }).join("") + "</div>";
+}
+async function progressOf(item) {
+  for (const v of item.videos) {
+    const arts = await artifactsOf(v.id);
+    const a = arts.find(x => x.name.startsWith("progress-") && !x.expired);
+    if (a) { const z = await zipOf(a); const n = findFile(z, "status.json"); if (n) return {...(await z.json(n)), run: v}; }
+  }
+  return null;
+}
+async function scriptFiles(item) {
+  const arts = await artifactsOf(item.script.id);
+  const a = arts.find(x => x.name.startsWith("script-") && !x.expired);
+  if (!a) return null;
+  return {art: a, zip: await zipOf(a)};
+}
+async function costOf(item) {
+  try { const f = await scriptFiles(item); if (!f) return null; const n = findFile(f.zip, "cost.json"); return n ? await f.zip.json(n) : null; }
+  catch (e) { return null; }
+}
+
+/* ---------------- actions ---------------- */
+async function dispatch(wf, inputs) {
+  await gh(repo(`/actions/workflows/${wf}/dispatches`), {method: "POST", body: JSON.stringify({ref: BRANCH, inputs})});
+  cache.artifacts.clear(); cache.jobs.clear();
+}
+async function startScript(topic) {
+  topic = (topic || "").trim(); if (!topic) return toast("Enter a topic first.");
+  try { await dispatch(WF.script, {topic}); toast(`✅ Script started for <b>${esc(topic)}</b>. It appears under Videos in a few seconds.`); setTimeout(() => go("videos"), 4000); }
+  catch (e) { toast("❌ " + esc(e.message)); }
+}
+async function makeVideo(scriptRunId) {
+  try { await dispatch(WF.video, {script_run_id: String(scriptRunId)}); toast("✅ Video run started (voice → images → assembly). If today's free image credit runs out, start it again tomorrow — it continues where it stopped."); setTimeout(() => go("videos"), 4000); }
+  catch (e) { toast("❌ " + esc(e.message)); }
+}
+async function cancelRun(id) { try { await gh(repo(`/actions/runs/${id}/cancel`), {method: "POST"}); toast("Cancel requested."); setTimeout(() => go("runs"), 2500); } catch (e) { toast("❌ " + esc(e.message)); } }
+async function rerunFailed(id) { try { await gh(repo(`/actions/runs/${id}/rerun-failed-jobs`), {method: "POST"}); toast("Re-run started."); setTimeout(() => go("runs"), 2500); } catch (e) { toast("❌ " + esc(e.message)); } }
+
+async function getFile(path) {
+  const f = await gh(repo(`/contents/${path}?ref=${BRANCH}`));
+  const txt = new TextDecoder().decode(Uint8Array.from(atob(f.content.replace(/\n/g, "")), c => c.charCodeAt(0)));
+  return {sha: f.sha, text: txt};
+}
+async function putFile(path, text, sha, message) {
+  const b64 = btoa(String.fromCharCode(...new TextEncoder().encode(text)));
+  return gh(repo(`/contents/${path}`), {method: "PUT", body: JSON.stringify({message, content: b64, sha, branch: BRANCH})});
+}
+
+/* ---------------- views ---------------- */
+const views = {};
+
+views.overview = async () => {
+  const groups = await groupVideos();
+  const runs = await allRuns();
+  const active = runs.filter(r => r.status !== "completed");
+  const last = groups[0];
+  let costs = [];
+  for (const g of groups.slice(0, 8)) { const c = await costOf(g); if (c) costs.push({g, c}); }
+  const now = new Date(), monthCost = costs.filter(x => new Date(x.g.script.created_at).getMonth() === now.getMonth()).reduce((a, x) => a + (x.c.estimated_usd || 0), 0);
+  let cfg = null; try { cfg = JSON.parse((await getFile("config.json")).text); } catch (e) {}
+  const budget = cfg?.monthly_budget_usd ?? 3;
+  let lastHtml = '<p class="muted">No video yet. Start one under “New video”.</p>';
+  if (last) {
+    const prog = await progressOf(last);
+    const p = prog ? Math.round(100 * prog.done / Math.max(1, prog.total)) : 0;
+    lastHtml = `<div class="row"><b>${esc(topicOf(last.script))}</b>${statusPill(last.videos[0] || last.script)}<span class="muted right">started ${ago(last.script.created_at)}</span></div>
+      ${await stagesHtml(last)}
+      ${prog ? `<div class="row muted" style="margin:6px 0">Images: ${prog.done} / ${prog.total} ${prog.complete ? "✓ complete" : `· ${prog.pending} still to make`}</div><div class="bar"><i style="width:${p}%"></i></div>` : ""}
+      <div class="row" style="margin-top:12px"><button onclick="go('videos')">Open in Videos</button>
+      ${last.script.conclusion === "success" ? `<button class="primary" onclick="makeVideo(${last.script.id})">${prog && !prog.complete ? "Continue images (next day)" : "Make / remake video"}</button>` : ""}</div>`;
+  }
+  return `<h1>Overview</h1><p class="sub">Your weekly business-documentary machine at a glance.</p>
+  <div class="grid g4">
+    <div class="card kpi"><div class="l">Videos started</div><div class="v">${groups.length}</div><div class="s">script runs kept by GitHub</div></div>
+    <div class="card kpi"><div class="l">Running now</div><div class="v">${active.length}</div><div class="s">${active.map(r => esc(r.name)).join(", ") || "nothing running"}</div></div>
+    <div class="card kpi"><div class="l">AI cost this month</div><div class="v">${money(monthCost)}</div><div class="s">budget ${money(budget)} · ${Math.round(100 * monthCost / budget)}% used</div><div class="bar" style="margin-top:8px"><i style="width:${Math.min(100, 100 * monthCost / budget)}%"></i></div></div>
+    <div class="card kpi"><div class="l">Text model</div><div class="v" style="font-size:18px">${esc(cfg?.openai_model || "?")}</div><div class="s">provider: ${esc(cfg?.llm_provider || "?")} · voice ${esc(cfg?.narrator_voice || "")} ×${esc(cfg?.narrator_speed ?? "")}</div></div>
+  </div>
+  <h2>Latest video</h2><div class="card">${lastHtml}</div>
+  <h2>Weekly rhythm</h2>
+  <div class="grid g4">
+    <div class="card"><b>Day 1</b><p class="muted">Start the script (≈15 min), then “Make video”: voice + first ≈55 images.</p></div>
+    <div class="card"><b>Day 2</b><p class="muted">Press “Continue images” — the free Cloudflare credit refills daily.</p></div>
+    <div class="card"><b>Day 3</b><p class="muted">Last images → video assembles automatically (≈10 min).</p></div>
+    <div class="card"><b>Review</b><p class="muted">Watch the video, check thumbnails, description and fact-check, then publish.</p></div>
+  </div>`;
+};
+
+views.videos = async () => {
+  const groups = await groupVideos();
+  if (!groups.length) return `<h1>Videos</h1><p class="muted">No videos yet.</p>`;
+  const cards = await Promise.all(groups.map(async (g, i) => `
+    <div class="video-card" id="vc-${g.script.id}">
+      <header onclick="toggleVideo(${g.script.id})">
+        <div><b>${esc(topicOf(g.script))}</b><div class="muted" style="font-size:12px">script run ${g.script.id} · ${fmtDate(g.script.created_at)} · ${g.videos.length} video run(s)</div></div>
+        <span class="right">${statusPill(g.script)} ${g.videos[0] ? statusPill(g.videos[0]) : '<span class="pill wait">no video yet</span>'}</span>
+      </header>
+      <div class="body hide" id="vb-${g.script.id}"><p class="muted"><span class="spin"></span> loading…</p></div>
+    </div>`));
+  return `<h1>Videos</h1><p class="sub">Every script run and the videos made from it. Click a video to open its script, thumbnails, description, fact-check, costs and the finished video.</p>${cards.join("")}`;
+};
+window.toggleVideo = async (id) => {
+  const body = $("#vb-" + id); body.classList.toggle("hide"); if (body.dataset.loaded) return; body.dataset.loaded = 1;
+  try {
+    const groups = await groupVideos(); const g = groups.find(x => x.script.id === id);
+    const prog = await progressOf(g);
+    const files = g.script.conclusion === "success" ? await scriptFiles(g) : null;
+    let html = await stagesHtml(g);
+    html += `<div class="row" style="margin:8px 0">`
+      + (g.script.conclusion === "success" ? `<button class="primary" onclick="makeVideo(${g.script.id})">${prog && !prog.complete ? "Continue images" : g.videos.length ? "Remake video" : "Make video"}</button>` : "")
+      + `<a href="${g.script.html_url}" target="_blank" rel="noopener"><button>Script logs ↗</button></a>`
+      + (g.videos[0] ? `<a href="${g.videos[0].html_url}" target="_blank" rel="noopener"><button>Video logs ↗</button></a>` : "") + `</div>`;
+    if (prog) { const p = Math.round(100 * prog.done / Math.max(1, prog.total));
+      html += `<h3>Images</h3><div class="row muted">${prog.done} / ${prog.total} ready ${prog.complete ? "· complete ✓" : `· ${prog.pending} still to make (free daily credit)`}${prog.fallbacks?.length ? ` · ⚠️ ${prog.fallbacks.length} fallback(s)` : ""}</div><div class="bar"><i style="width:${p}%"></i></div>`; }
+    if (files) {
+      const z = files.zip;
+      const cost = findFile(z, "cost.json") ? await z.json(findFile(z, "cost.json")) : null;
+      const thumbs = await Promise.all(["thumbnails/thumb_1.jpg", "thumbnails/thumb_2.jpg"].map(async n => { const f = findFile(z, n); return f ? `<img src="${await z.url(f, "image/jpeg")}" alt="${n}">` : ""; }));
+      const script = JSON.parse(await z.text(findFile(z, "script.json")) || "{}");
+      const ol = script.outline || {};
+      const scenes = (script.chapters || []).flatMap(c => c.scenes || []);
+      const words = scenes.reduce((a, s) => a + (s.narration || "").split(/\s+/).filter(Boolean).length, 0);
+      const fc = findFile(z, "factcheck.json") ? await z.json(findFile(z, "factcheck.json")) : null;
+      const desc = findFile(z, "description.txt") ? await z.text(findFile(z, "description.txt")) : "";
+      const md = findFile(z, "script.md") ? await z.text(findFile(z, "script.md")) : "";
+      html += `<div class="grid g4" style="margin-top:14px">
+        <div class="card kpi"><div class="l">Scenes / images</div><div class="v">${scenes.length}</div><div class="s">≈ one new image every 4 s</div></div>
+        <div class="card kpi"><div class="l">Words</div><div class="v">${words}</div><div class="s">≈ ${(words / 120).toFixed(1)} min with Michael</div></div>
+        <div class="card kpi"><div class="l">Fact-check</div><div class="v">${fc?.rounds ? fc.rounds.map(r => Object.keys(r.problems || {}).length).join(" → ") : "–"}</div><div class="s">unproven items per round${fc?.dropped?.length ? ` · ${fc.dropped.length} dropped` : ""}</div></div>
+        <div class="card kpi"><div class="l">Script cost</div><div class="v">${cost ? money(cost.estimated_usd) : "–"}</div><div class="s">${cost ? `${cost.calls} calls · ${(cost.cached || 0).toLocaleString()} cached tokens` : "not recorded"}</div></div>
+      </div>
+      <h3>Titles</h3><ol>${(ol.title_options || []).map(t => `<li>${esc(t)}</li>`).join("")}</ol>
+      <h3>Thumbnails</h3><div class="thumbs">${thumbs.join("") || '<span class="muted">none</span>'}</div>
+      <h3>YouTube description (${desc.length} / 5,000 characters)</h3><div class="row"><button onclick="navigator.clipboard.writeText(document.getElementById('desc-${id}').textContent);toast('Description copied')">Copy description</button></div><pre class="box" id="desc-${id}">${esc(desc)}</pre>
+      <h3>Script</h3><div class="md">${mdToHtml(md)}</div>
+      ${fc ? `<h3>Fact-check details</h3><pre class="box">${esc(JSON.stringify(fc, null, 1))}</pre>` : ""}`;
+    } else if (g.script.status !== "completed") html += `<p class="muted">Script still running…</p>`;
+    else html += `<p class="muted">Script files are not available (failed run or expired after 14 days).</p>`;
+    const vArts = g.videos.length ? await artifactsOf(g.videos[0].id) : [];
+    const vid = vArts.find(a => a.name.startsWith("video-") && !a.expired);
+    if (vid) html += `<h3>Finished video</h3><div class="row"><button class="primary" onclick="loadVideo(${id}, ${vid.id}, ${vid.size_in_bytes})">▶ Load video (${(vid.size_in_bytes / 1e6).toFixed(0)} MB)</button><a href="${g.videos[0].html_url}#artifacts" target="_blank" rel="noopener"><button>Download review package ↗</button></a></div><div id="player-${id}" style="margin-top:10px"></div>`;
+    body.innerHTML = html;
+  } catch (e) { body.innerHTML = `<p class="muted">❌ ${esc(e.message)}</p>`; }
+};
+window.loadVideo = async (id, artId, size) => {
+  const box = $("#player-" + id); box.innerHTML = '<span class="muted"><span class="spin"></span> downloading… <span id="pp-' + id + '">0%</span></span>';
+  try {
+    const z = await zipOf({id: artId, size_in_bytes: size}, (got, tot) => { const el = $("#pp-" + id); if (el) el.textContent = Math.round(100 * got / tot) + "%"; });
+    const url = await z.url(findFile(z, "final.mp4"), "video/mp4");
+    box.innerHTML = `<video src="${url}" controls></video><div class="row" style="margin-top:6px"><a href="${url}" download="final.mp4"><button>Save MP4</button></a></div>`;
+  } catch (e) { box.innerHTML = `<span class="muted">❌ ${esc(e.message)}</span>`; }
+};
+function mdToHtml(md) {
+  return esc(md).split("\n").map(l => {
+    if (l.startsWith("## ")) return `<h2>${l.slice(3)}</h2>`; if (l.startsWith("# ")) return `<h1>${l.slice(2)}</h1>`;
+    l = l.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/_(.+?)_/g, "<i>$1</i>");
+    return l.startsWith("- ") ? `<div>• ${l.slice(2)}</div>` : `<div class="muted">${l}</div>`;
+  }).join("");
+}
+
+views.new = async () => {
+  let q = []; try { q = JSON.parse((await getFile("topics.json")).text).queue || []; } catch (e) {}
+  const next = q.find(x => x.status === "queued");
+  return `<h1>New video</h1><p class="sub">Starts “Write script”: research (Wikipedia + references) → outline → 8 chapters of 4-second scenes → editor → evidence fact-check → thumbnails → disclaimer. ≈15 min, ≈$0.60.</p>
+  <div class="card"><label>Business story / company (be specific, e.g. “Toys R Us bankruptcy”)</label>
+  <input id="topic" placeholder="e.g. Kodak digital camera decline" value="${esc(next?.topic || "")}">
+  <div class="row" style="margin-top:12px"><button class="primary" onclick="startScript(document.getElementById('topic').value)">Start script</button>
+  ${next ? `<span class="muted">Pre-filled with the next topic in your queue.</span>` : ""}</div></div>
+  <h2>After the script</h2><div class="card muted">Open the video under <b>Videos</b> and press <b>Make video</b>. Images need 2–3 days of free Cloudflare credit for ≈120 scenes; press <b>Continue images</b> once a day until the video is assembled.</div>`;
+};
+
+views.topics = async () => {
+  let f; try { f = await getFile("topics.json"); } catch (e) { return `<h1>Topic queue</h1><p class="muted">topics.json not found (${esc(e.message)}).</p>`; }
+  const data = JSON.parse(f.text); window._topics = {data, sha: f.sha};
+  return `<h1>Topic queue</h1><p class="sub">Upcoming videos, top = next. Saved to <code>topics.json</code> in your repo.</p>
+  <div class="card"><div id="qlist"></div>
+  <div class="row" style="margin-top:10px"><input id="newTopic" placeholder="Add a topic, e.g. Sears department store collapse" style="flex:1"><button onclick="qAdd()">Add</button></div>
+  <div class="row" style="margin-top:12px"><button class="primary" onclick="qSave()">Save queue</button><span class="muted">Ideas: rise &amp; fall, rivalries, frauds, comebacks, failed products, founder stories.</span></div></div>`;
+};
+function qRender() {
+  const q = window._topics.data.queue;
+  $("#qlist").innerHTML = q.map((x, i) => `<div class="qitem"><span class="muted">${i + 1}.</span><span class="t">${esc(x.topic)}</span>
+    <select onchange="window._topics.data.queue[${i}].status=this.value" style="width:auto">${["queued", "in progress", "done", "skipped"].map(s => `<option ${s === x.status ? "selected" : ""}>${s}</option>`).join("")}</select>
+    <button onclick="qMove(${i},-1)">↑</button><button onclick="qMove(${i},1)">↓</button><button onclick="startScript(${JSON.stringify(x.topic).replace(/"/g, "&quot;")})">Start</button><button class="danger" onclick="qDel(${i})">✕</button></div>`).join("") || '<p class="muted">Queue is empty.</p>';
+}
+window.qAdd = () => { const v = $("#newTopic").value.trim(); if (!v) return; window._topics.data.queue.push({topic: v, status: "queued"}); $("#newTopic").value = ""; qRender(); };
+window.qDel = i => { window._topics.data.queue.splice(i, 1); qRender(); };
+window.qMove = (i, d) => { const q = window._topics.data.queue, j = i + d; if (j < 0 || j >= q.length) return; [q[i], q[j]] = [q[j], q[i]]; qRender(); };
+window.qSave = async () => { try { const r = await putFile("topics.json", JSON.stringify(window._topics.data, null, 2) + "\n", window._topics.sha, "Update topic queue (dashboard)"); window._topics.sha = r.content.sha; toast("✅ Topic queue saved."); } catch (e) { toast("❌ " + esc(e.message)); } };
+
+views.runs = async () => {
+  const runs = await allRuns();
+  return `<h1>Runs &amp; logs</h1><p class="sub">Every workflow run on GitHub. Cancel stuck runs, re-run failed ones, or open the full logs.</p>
+  <div class="card" style="overflow:auto"><table><tr><th>Workflow</th><th>What</th><th>Status</th><th>Started</th><th>Took</th><th></th></tr>
+  ${runs.map(r => `<tr><td>${esc(r.name)}</td><td>${esc(r.display_title)}<div class="muted" style="font-size:12px">run ${r.id}</div></td><td>${statusPill(r)}</td>
+    <td>${fmtDate(r.run_started_at || r.created_at)}<div class="muted" style="font-size:12px">${ago(r.created_at)}</div></td><td>${dur(r.run_started_at, r.status === "completed" ? r.updated_at : null)}</td>
+    <td class="row">${r.status !== "completed" ? `<button class="danger" onclick="cancelRun(${r.id})">Cancel</button>` : ""}
+    ${r.status === "completed" && r.conclusion === "failure" ? `<button onclick="rerunFailed(${r.id})">Re-run</button>` : ""}
+    <a href="${r.html_url}" target="_blank" rel="noopener"><button>Logs ↗</button></a></td></tr>`).join("")}
+  </table></div>`;
+};
+
+views.costs = async () => {
+  const groups = await groupVideos();
+  let cfg = {}; try { cfg = JSON.parse((await getFile("config.json")).text); } catch (e) {}
+  const rows = [];
+  for (const g of groups) { const c = await costOf(g); rows.push({g, c}); }
+  const months = {};
+  rows.forEach(({g, c}) => { if (!c) return; const k = g.script.created_at.slice(0, 7); months[k] = (months[k] || 0) + (c.estimated_usd || 0); });
+  const p = cfg.openai_prices_per_million || {};
+  return `<h1>Costs</h1><p class="sub">AI text cost per video (OpenAI ${esc(cfg.openai_model || "")}). Images (Cloudflare free tier), voice (Kokoro) and GitHub runners are free.</p>
+  <div class="grid g3">${Object.entries(months).sort().reverse().map(([m, v]) => `<div class="card kpi"><div class="l">${m}</div><div class="v">${money(v)}</div><div class="s">budget ${money(cfg.monthly_budget_usd ?? 3)}</div></div>`).join("") || '<div class="card muted">No cost records yet (cost.json is written by new script runs).</div>'}</div>
+  <h2>Per video</h2><div class="card" style="overflow:auto"><table><tr><th>Video</th><th>Date</th><th>Calls</th><th>Input tokens</th><th>Cached</th><th>Output tokens</th><th>Cost</th></tr>
+  ${rows.map(({g, c}) => `<tr><td>${esc(topicOf(g.script))}</td><td>${fmtDate(g.script.created_at)}</td>${c ? `<td>${c.calls}</td><td>${(c.input || 0).toLocaleString()}</td><td>${(c.cached || 0).toLocaleString()}</td><td>${(c.output || 0).toLocaleString()}</td><td><b>${money(c.estimated_usd)}</b></td>` : '<td colspan="5" class="muted">not recorded / expired</td>'}</tr>`).join("")}
+  </table></div>
+  <h2>Prices used for estimates</h2><div class="card muted">per 1M tokens: input $${p.input ?? "?"} · cache write $${p.cache_write ?? "?"} · cached read $${p.cached ?? "?"} · output $${p.output ?? "?"}. Real charges: <a href="https://platform.openai.com/usage" target="_blank" rel="noopener">OpenAI usage page ↗</a></div>`;
+};
+
+views.settings = async () => {
+  const f = await getFile("config.json"); const c = JSON.parse(f.text); window._cfg = {c, sha: f.sha};
+  const d = c.disclaimer || {};
+  return `<h1>Settings</h1><p class="sub">Saved to <code>config.json</code> in your repo; the next run uses them.</p>
+  <div class="grid g2">
+  <div class="card"><h3>Script &amp; AI</h3>
+    <label>Text model provider</label><select id="s_llm"><option value="openai" ${c.llm_provider === "openai" ? "selected" : ""}>OpenAI (paid, best)</option><option value="gemini" ${c.llm_provider === "gemini" ? "selected" : ""}>Gemini (free, backup)</option></select>
+    <label>OpenAI model</label><input id="s_model" value="${esc(c.openai_model || "")}">
+    <label>Monthly AI budget (USD, for the dashboard)</label><input id="s_budget" type="number" step="0.5" value="${c.monthly_budget_usd ?? 3}">
+    <label>Retries per failed image / call</label><input id="s_retry" type="number" min="0" max="6" value="${c.max_retries ?? 4}"></div>
+  <div class="card"><h3>Voice &amp; audio</h3>
+    <label>Narrator voice</label><select id="s_voice">${["am_michael", "am_fenrir", "am_adam", "af_heart"].map(v => `<option ${v === c.narrator_voice ? "selected" : ""}>${v}</option>`).join("")}</select>
+    <label>Narrator speed: <b id="spd">${c.narrator_speed}</b></label><input id="s_speed" type="range" min="0.85" max="1.15" step="0.01" value="${c.narrator_speed}" oninput="document.getElementById('spd').textContent=this.value">
+    <label><input id="s_music" type="checkbox" style="width:auto" ${c.music_enabled ? "checked" : ""}> Background music (needs tracks in assets/music)</label>
+    <label>Music volume</label><input id="s_mvol" type="number" step="0.01" value="${c.music_volume ?? 0.12}">
+    <label>Target loudness (LUFS)</label><input id="s_lufs" type="number" value="${c.target_loudness_lufs ?? -14}"></div>
+  <div class="card"><h3>Disclaimer</h3>
+    <label><input id="s_dscreen" type="checkbox" style="width:auto" ${d.screen_enabled ? "checked" : ""}> Show disclaimer screen at the start</label>
+    <label>Seconds</label><input id="s_dsec" type="number" min="1" max="10" value="${d.seconds ?? 2}">
+    <label>Screen lines (one per line)</label><textarea id="s_dlines">${esc((d.lines || []).join("\n"))}</textarea>
+    <label>Description disclaimer (one paragraph per line)</label><textarea id="s_dtext" style="min-height:160px">${esc((d.description_text || []).join("\n"))}</textarea></div>
+  <div class="card"><h3>Images</h3>
+    <label>Image model (Cloudflare)</label><input id="s_img" value="${esc(c.image_model || "")}">
+    <p class="muted">One new image per 4-second scene (channel rule). Free credit ≈ 55 images/day, so a 9-minute video needs 2–3 days.</p>
+    <h3>Advanced: raw JSON</h3><textarea id="s_raw" style="min-height:160px">${esc(JSON.stringify(c, null, 2))}</textarea>
+    <div class="row"><button onclick="saveRaw()">Save raw JSON</button></div></div>
+  </div>
+  <div class="row" style="margin-top:14px"><button class="primary" onclick="saveSettings()">Save settings</button><span class="muted">Commits config.json to your repo.</span></div>`;
+};
+window.saveSettings = async () => {
+  const c = window._cfg.c;
+  c.llm_provider = $("#s_llm").value; c.openai_model = $("#s_model").value.trim(); c.monthly_budget_usd = parseFloat($("#s_budget").value) || 3;
+  c.max_retries = parseInt($("#s_retry").value) || 4; c.narrator_voice = $("#s_voice").value; c.narrator_speed = parseFloat($("#s_speed").value);
+  c.music_enabled = $("#s_music").checked; c.music_volume = parseFloat($("#s_mvol").value); c.target_loudness_lufs = parseFloat($("#s_lufs").value);
+  c.image_model = $("#s_img").value.trim();
+  c.disclaimer = {...(c.disclaimer || {}), screen_enabled: $("#s_dscreen").checked, seconds: parseFloat($("#s_dsec").value) || 2,
+    lines: $("#s_dlines").value.split("\n").map(s => s.trim()).filter(Boolean), description_text: $("#s_dtext").value.split("\n").map(s => s.trim()).filter(Boolean)};
+  try { const r = await putFile("config.json", JSON.stringify(c, null, 2) + "\n", window._cfg.sha, "Update settings (dashboard)"); window._cfg.sha = r.content.sha; toast("✅ Settings saved — used from the next run."); }
+  catch (e) { toast("❌ " + esc(e.message)); }
+};
+window.saveRaw = async () => {
+  let c; try { c = JSON.parse($("#s_raw").value); } catch (e) { return toast("❌ Not valid JSON: " + esc(e.message)); }
+  try { const r = await putFile("config.json", JSON.stringify(c, null, 2) + "\n", window._cfg.sha, "Update settings (dashboard, raw)"); window._cfg.sha = r.content.sha; window._cfg.c = c; toast("✅ Saved."); }
+  catch (e) { toast("❌ " + esc(e.message)); }
+};
+
+views.setup = async () => {
+  let names = null, err = "";
+  try { names = (await gh(repo(`/actions/secrets?per_page=100`))).secrets.map(s => s.name); } catch (e) { err = e.message; }
+  return `<h1>Setup &amp; keys</h1><p class="sub">Keys live encrypted in GitHub Secrets; this page only sees their names.</p>
+  <div class="card" style="overflow:auto"><table><tr><th>Secret</th><th>Used for</th><th>Status</th><th></th></tr>
+  ${REQUIRED_SECRETS.map(([n, why, link]) => `<tr><td><code>${n}</code></td><td class="muted">${why}</td><td>${names ? (names.includes(n) ? '<span class="pill ok">✓ set</span>' : '<span class="pill wait">missing</span>') : '<span class="pill wait">?</span>'}</td><td>${link ? `<a href="${link}" target="_blank" rel="noopener">get key ↗</a>` : ""}</td></tr>`).join("")}
+  </table>${err ? `<p class="muted">Couldn’t read secret names (${esc(err)}). Give the token “Secrets: Read-only” to see this.</p>` : ""}</div>
+  <h2>Add or change a key</h2><div class="card muted">GitHub → <a href="https://github.com/${OWNER}/${REPO}/settings/secrets/actions" target="_blank" rel="noopener">${REPO} → Settings → Secrets and variables → Actions ↗</a> → New repository secret. Never paste keys into chats.</div>
+  <h2>Accounts</h2><div class="grid g3">
+    <div class="card"><b>YouTube channel</b><p class="muted">Unpacked Empires · <a href="https://studio.youtube.com" target="_blank" rel="noopener">YouTube Studio ↗</a></p></div>
+    <div class="card"><b>OpenAI</b><p class="muted"><a href="https://platform.openai.com/usage" target="_blank" rel="noopener">Usage</a> · <a href="https://platform.openai.com/settings/organization/limits" target="_blank" rel="noopener">Limits</a></p></div>
+    <div class="card"><b>Cloudflare</b><p class="muted"><a href="https://dash.cloudflare.com/" target="_blank" rel="noopener">Dashboard ↗</a> · 10,000 free neurons/day</p></div>
+  </div>`;
+};
+
+views.rules = async () => `<h1>Channel rules</h1><p class="sub">Built into the pipeline; changing them needs a code change.</p>
+  <div class="grid g2">
+  <div class="card"><h3>🎬 Format</h3><ul class="muted"><li>US business stories (rise &amp; fall, rivalries, frauds, comebacks, failed products, founders)</li><li>8–10 minutes, 1 video per week</li><li>Narrator Michael (Kokoro am_michael); no background music for now</li><li>Fully automated; you only review the final video</li></ul></div>
+  <div class="card"><h3>🖼 Visuals</h3><ul class="muted"><li>A new, situation-specific image every ≈4 s (≈120–135 per video), no reuse</li><li>2D graphic-novel style, warm palette; consistent characters from reference portraits</li><li>Era-accurate devices/places; no readable text, no real logos, no exact faces</li><li>Smooth sub-pixel camera moves; designed end card</li></ul></div>
+  <div class="card"><h3>✅ Facts</h3><ul class="muted"><li>Only facts from Wikipedia + its cited references</li><li>Evidence fact-check: every claim needs a verbatim quote that the code verifies</li><li>No invented quotes; dialogue only from ordinary unnamed people</li><li>Titles and thumbnails fact-checked; drama kept with specific sourced facts</li></ul></div>
+  <div class="card"><h3>🛡 Safety &amp; credits</h3><ul class="muted"><li>2-second disclaimer screen + detailed description disclaimer</li><li>Max 4 retries per failed image/call, then fallback (never stall)</li><li>Key sources in description (≤5,000 chars) + full source page</li><li>AI budget ≈ $3/month (≈ $0.60 per video)</li></ul></div>
+  </div>`;
+
+/* ---------------- router / auth ---------------- */
+async function go(tab) {
+  if (!views[tab]) tab = "overview";
+  if (location.hash !== "#" + tab) history.replaceState(null, "", "#" + tab);
+  document.querySelectorAll("nav a.tab").forEach(a => a.classList.toggle("on", a.dataset.tab === tab));
+  const main = $("#main"); main.innerHTML = '<p class="muted"><span class="spin"></span> loading…</p>';
+  try { main.innerHTML = await views[tab](); if (tab === "topics") qRender(); }
+  catch (e) { main.innerHTML = `<h1>Something went wrong</h1><p class="muted">${esc(e.message)}</p><p class="muted">If it says 401/403, the token is wrong, expired or missing a permission — <a href="#" onclick="disconnect();return false">reconnect</a>.</p>`; }
+}
+window.addEventListener("hashchange", () => TOKEN && go(location.hash.slice(1)));
+async function connect() {
+  const t = $("#tokenInput").value.trim(); if (!t) return;
+  TOKEN = t; $("#loginMsg").innerHTML = '<span class="spin"></span> checking…';
+  try { await gh(repo("")); store("ue_token", t, $("#remember").checked); start(); }
+  catch (e) { TOKEN = null; $("#loginMsg").textContent = "❌ " + e.message + " — check repository access and permissions."; }
+}
+function disconnect() { forget("ue_token"); TOKEN = null; cache.zips.clear(); cache.artifacts.clear(); cache.jobs.clear(); $("#app").classList.add("hide"); $("#login").classList.remove("hide"); }
+function start() {
+  $("#login").classList.add("hide"); $("#app").classList.remove("hide");
+  const l = $("#repoLink"); l.href = `https://github.com/${OWNER}/${REPO}`; l.textContent = `${OWNER}/${REPO}`;
+  go(location.hash.slice(1) || "overview");
+  setInterval(() => { if (["overview", "runs"].includes(location.hash.slice(1)) && !document.hidden) { cache.jobs.clear(); cache.artifacts.clear(); go(location.hash.slice(1)); } }, 60000);
+}
+TOKEN = load("ue_token");
+if (TOKEN) start(); else $("#login").classList.remove("hide");
+</script>
+</body>
+</html>
