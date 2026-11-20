@@ -149,10 +149,16 @@ function statusPill(run) {
   return `<span class="pill bad"><span class="dot"></span>${esc(run.conclusion || "failed")}</span>`;
 }
 
+function withTimeout(ms) { const c = new AbortController(); const t = setTimeout(() => c.abort(), ms); return {signal: c.signal, done: () => clearTimeout(t)}; }
 async function gh(path, opts = {}) {
-  const r = await fetch(path.startsWith("http") ? path : API + path, {
-    ...opts, headers: {"Authorization": "Bearer " + TOKEN, "Accept": "application/vnd.github+json",
-                       "X-GitHub-Api-Version": "2022-11-28", ...(opts.headers || {})}});
+  const to = withTimeout(25000);
+  let r;
+  try {
+    r = await fetch(path.startsWith("http") ? path : API + path, {
+      ...opts, signal: to.signal, headers: {"Authorization": "Bearer " + TOKEN, "Accept": "application/vnd.github+json",
+                         "X-GitHub-Api-Version": "2022-11-28", ...(opts.headers || {})}});
+  } catch (e) { throw new Error(e.name === "AbortError" ? "GitHub did not answer within 25 s" : e.message); }
+  finally { to.done(); }
   const left = r.headers.get("x-ratelimit-remaining");
   if (left) $("#rate").textContent = `API calls left this hour: ${left}`;
   if (!r.ok) { let m = ""; try { m = (await r.json()).message; } catch (e) {} throw new Error(`${r.status} ${m || r.statusText}`); }
@@ -196,14 +202,17 @@ async function artifactsOf(runId) {
 }
 async function zipOf(art, onProgress) {
   if (cache.zips.has(art.id)) return cache.zips.get(art.id);
-  const r = await fetch(API + repo(`/actions/artifacts/${art.id}/zip`), {headers: {"Authorization": "Bearer " + TOKEN}});
-  if (!r.ok) throw new Error("download failed: " + r.status);
+  const to = onProgress ? {signal: undefined, done() {}} : withTimeout(60000);
+  let r;
+  try { r = await fetch(API + repo(`/actions/artifacts/${art.id}/zip`), {signal: to.signal, headers: {"Authorization": "Bearer " + TOKEN}}); }
+  catch (e) { to.done(); throw new Error(e.name === "AbortError" ? "download took longer than 60 s" : e.message); }
+  if (!r.ok) { to.done(); throw new Error("download failed: " + r.status); }
   let buf;
   if (onProgress && r.body) {
     const reader = r.body.getReader(), chunks = []; let got = 0;
     for (;;) { const {done, value} = await reader.read(); if (done) break; chunks.push(value); got += value.length; onProgress(got, art.size_in_bytes); }
     buf = await new Blob(chunks).arrayBuffer();
-  } else buf = await r.arrayBuffer();
+  } else { try { buf = await r.arrayBuffer(); } finally { to.done(); } }
   const z = await readZip(buf);
   cache.zips.set(art.id, z);
   return z;
@@ -265,9 +274,16 @@ async function scriptFiles(item) {
   if (!a) return null;
   return {art: a, zip: await zipOf(a)};
 }
-async function costOf(item) {
-  try { const f = await scriptFiles(item); if (!f) return null; const n = findFile(f.zip, "cost.json"); return n ? await f.zip.json(n) : null; }
-  catch (e) { return null; }
+async function costOf(item, allowBig = false) {
+  // fast path: tiny "meta-*" artifact (a few KB); slow path (Costs page only): the full script package (~3 MB)
+  try {
+    if (item.script.conclusion !== "success") return null;
+    const arts = await artifactsOf(item.script.id);
+    const meta = arts.find(x => x.name.startsWith("meta-") && !x.expired);
+    if (meta) { const z = await zipOf(meta); const n = findFile(z, "cost.json"); if (n) return await z.json(n); }
+    if (!allowBig) return null;
+    const f = await scriptFiles(item); if (!f) return null; const n = findFile(f.zip, "cost.json"); return n ? await f.zip.json(n) : null;
+  } catch (e) { return null; }
 }
 
 /* ---------------- actions ---------------- */
@@ -301,33 +317,19 @@ async function putFile(path, text, sha, message) {
 const views = {};
 
 views.overview = async () => {
-  const groups = await groupVideos();
+  // Fast first paint: one API call (the run list). Slower details fill in afterwards (see fillOverview).
   const runs = await allRuns();
+  const scripts = runs.filter(r => r.path.endsWith(WF.script));
   const active = runs.filter(r => r.status !== "completed");
-  const last = groups[0];
-  let costs = [];
-  for (const g of groups.slice(0, 8)) { const c = await costOf(g); if (c) costs.push({g, c}); }
-  const now = new Date(), monthCost = costs.filter(x => new Date(x.g.script.created_at).getMonth() === now.getMonth()).reduce((a, x) => a + (x.c.estimated_usd || 0), 0);
-  let cfg = null; try { cfg = JSON.parse((await getFile("config.json")).text); } catch (e) {}
-  const budget = cfg?.monthly_budget_usd ?? 3;
-  let lastHtml = '<p class="muted">No video yet. Start one under “New video”.</p>';
-  if (last) {
-    const prog = await progressOf(last);
-    const p = prog ? Math.round(100 * prog.done / Math.max(1, prog.total)) : 0;
-    lastHtml = `<div class="row"><b>${esc(topicOf(last.script))}</b>${statusPill(last.videos[0] || last.script)}<span class="muted right">started ${ago(last.script.created_at)}</span></div>
-      ${await stagesHtml(last)}
-      ${prog ? `<div class="row muted" style="margin:6px 0">Images: ${prog.done} / ${prog.total} ${prog.complete ? "✓ complete" : `· ${prog.pending} still to make`}</div><div class="bar"><i style="width:${p}%"></i></div>` : ""}
-      <div class="row" style="margin-top:12px"><button onclick="go('videos')">Open in Videos</button>
-      ${last.script.conclusion === "success" ? `<button class="primary" onclick="makeVideo(${last.script.id})">${prog && !prog.complete ? "Continue images (next day)" : "Make / remake video"}</button>` : ""}</div>`;
-  }
+  window._after = fillOverview;
   return `<h1>Overview</h1><p class="sub">Your weekly business-documentary machine at a glance.</p>
   <div class="grid g4">
-    <div class="card kpi"><div class="l">Videos started</div><div class="v">${groups.length}</div><div class="s">script runs kept by GitHub</div></div>
-    <div class="card kpi"><div class="l">Running now</div><div class="v">${active.length}</div><div class="s">${active.map(r => esc(r.name)).join(", ") || "nothing running"}</div></div>
-    <div class="card kpi"><div class="l">AI cost this month</div><div class="v">${money(monthCost)}</div><div class="s">budget ${money(budget)} · ${Math.round(100 * monthCost / budget)}% used</div><div class="bar" style="margin-top:8px"><i style="width:${Math.min(100, 100 * monthCost / budget)}%"></i></div></div>
-    <div class="card kpi"><div class="l">Text model</div><div class="v" style="font-size:18px">${esc(cfg?.openai_model || "?")}</div><div class="s">provider: ${esc(cfg?.llm_provider || "?")} · voice ${esc(cfg?.narrator_voice || "")} ×${esc(cfg?.narrator_speed ?? "")}</div></div>
+    <div class="card kpi"><div class="l">Videos started</div><div class="v">${scripts.length}</div><div class="s">script runs kept by GitHub</div></div>
+    <div class="card kpi"><div class="l">Running now</div><div class="v">${active.length}</div><div class="s">${active.map(r => esc(r.display_title || r.name)).join(", ") || "nothing running"}</div></div>
+    <div class="card kpi" id="ov-cost"><div class="l">AI cost this month</div><div class="v"><span class="spin"></span></div><div class="s">loading…</div></div>
+    <div class="card kpi" id="ov-model"><div class="l">Text model</div><div class="v" style="font-size:18px"><span class="spin"></span></div><div class="s"></div></div>
   </div>
-  <h2>Latest video</h2><div class="card">${lastHtml}</div>
+  <h2>Latest video</h2><div class="card" id="ov-last"><p class="muted"><span class="spin"></span> loading stages and image progress…</p></div>
   <h2>Weekly rhythm</h2>
   <div class="grid g4">
     <div class="card"><b>Day 1</b><p class="muted">Start the script (≈15 min), then “Make video”: voice + first ≈55 images.</p></div>
@@ -336,6 +338,40 @@ views.overview = async () => {
     <div class="card"><b>Review</b><p class="muted">Watch the video, check thumbnails, description and fact-check, then publish.</p></div>
   </div>`;
 };
+
+async function fillOverview() {
+  const set = (sel, html) => { const el = $(sel); if (el) el.innerHTML = html; };
+  let cfg = null;
+  try { cfg = JSON.parse((await getFile("config.json")).text); } catch (e) {}
+  set("#ov-model", `<div class="l">Text model</div><div class="v" style="font-size:18px">${esc(cfg?.openai_model || "?")}</div><div class="s">provider: ${esc(cfg?.llm_provider || "?")} · voice ${esc(cfg?.narrator_voice || "")} ×${esc(cfg?.narrator_speed ?? "")}</div>`);
+  let groups = [];
+  try { groups = await groupVideos(); } catch (e) { set("#ov-last", `<p class="muted">❌ ${esc(e.message)}</p>`); }
+  const last = groups[0];
+  // latest video
+  (async () => {
+    if (!last) return set("#ov-last", '<p class="muted">No video yet. Start one under “New video”.</p>');
+    try {
+      let prog = null; try { prog = await progressOf(last); } catch (e) {}
+      const p = prog ? Math.round(100 * prog.done / Math.max(1, prog.total)) : 0;
+      set("#ov-last", `<div class="row"><b>${esc(topicOf(last.script))}</b>${statusPill(last.videos[0] || last.script)}<span class="muted right">started ${ago(last.script.created_at)}</span></div>
+        ${await stagesHtml(last)}
+        ${prog ? `<div class="row muted" style="margin:6px 0">Images: ${prog.done} / ${prog.total} ${prog.complete ? "✓ complete" : `· ${prog.pending} still to make`}</div><div class="bar"><i style="width:${p}%"></i></div>`
+               : (last.videos[0] && last.videos[0].status !== "completed" ? '<p class="muted">Video run in progress — image progress appears when today’s image step finishes.</p>' : "")}
+        <div class="row" style="margin-top:12px"><button onclick="go('videos')">Open in Videos</button>
+        ${last.script.conclusion === "success" && !(last.videos[0] && last.videos[0].status !== "completed")
+          ? `<button class="primary" onclick="makeVideo(${last.script.id})">${prog && !prog.complete ? "Continue images (next day)" : last.videos.length ? "Remake video" : "Make video"}</button>` : ""}</div>`);
+    } catch (e) { set("#ov-last", `<p class="muted">❌ ${esc(e.message)}</p>`); }
+  })();
+  // month cost from tiny meta artifacts only (never the 3 MB packages here)
+  (async () => {
+    const budget = cfg?.monthly_budget_usd ?? 3, now = new Date();
+    const mine = groups.filter(g => { const d = new Date(g.script.created_at); return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear(); });
+    let total = 0, known = 0;
+    for (const g of mine) { const c = await costOf(g); if (c) { total += c.estimated_usd || 0; known++; } }
+    const pct = Math.min(100, 100 * total / budget);
+    set("#ov-cost", `<div class="l">AI cost this month</div><div class="v">${money(total)}</div><div class="s">budget ${money(budget)} · ${Math.round(100 * total / budget)}% used · ${known} video(s) with cost records</div><div class="bar" style="margin-top:8px"><i style="width:${pct}%"></i></div>`);
+  })();
+}
 
 views.videos = async () => {
   const groups = await groupVideos();
@@ -455,7 +491,7 @@ views.costs = async () => {
   const groups = await groupVideos();
   let cfg = {}; try { cfg = JSON.parse((await getFile("config.json")).text); } catch (e) {}
   const rows = [];
-  for (const g of groups) { const c = await costOf(g); rows.push({g, c}); }
+  for (const g of groups) { const c = await costOf(g, true); rows.push({g, c}); }
   const months = {};
   rows.forEach(({g, c}) => { if (!c) return; const k = g.script.created_at.slice(0, 7); months[k] = (months[k] || 0) + (c.estimated_usd || 0); });
   const p = cfg.openai_prices_per_million || {};
@@ -542,7 +578,8 @@ async function go(tab) {
   if (location.hash !== "#" + tab) history.replaceState(null, "", "#" + tab);
   document.querySelectorAll("nav a.tab").forEach(a => a.classList.toggle("on", a.dataset.tab === tab));
   const main = $("#main"); main.innerHTML = '<p class="muted"><span class="spin"></span> loading…</p>';
-  try { main.innerHTML = await views[tab](); if (tab === "topics") qRender(); }
+  window._after = null;
+  try { main.innerHTML = await views[tab](); if (tab === "topics") qRender(); if (window._after) window._after(); }
   catch (e) { main.innerHTML = `<h1>Something went wrong</h1><p class="muted">${esc(e.message)}</p><p class="muted">If it says 401/403, the token is wrong, expired or missing a permission — <a href="#" onclick="disconnect();return false">reconnect</a>.</p>`; }
 }
 window.addEventListener("hashchange", () => TOKEN && go(location.hash.slice(1)));
